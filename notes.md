@@ -116,6 +116,23 @@ with torch.no_grad():
 This example demonstrates a straightforward workflow for preparing text data from a pandas DataFrame for NLP modeling with a pre-trained transformer. Adjustments may be necessary depending on your specific model and task (e.g., sequence classification, token classification).
 
 
+# Paper
+This model is an extention of BERT with two extra features, Disentangled Attention and an enhanced mask decoder
+
+DeBERTa improves BERT with two novel components: DA (Disentangled Attention) and an enhanced
+mask decoder. Unlike existing approaches that use a single vector to represent both the content and
+the position of each input word, the DA mechanism uses two separate vectors: one for the content
+and the other for the position. Meanwhile, the DA mechanism’s attention weights among words
+are computed via disentangled matrices on both their contents and relative positions. Like BERT,
+DeBERTa is pre-trained using masked language modeling. The DA mechanism already considers the
+contents and relative positions of the context words, but not the absolute positions of these words,
+which in many cases are crucial for the prediction. DeBERTa uses an enhanced mask decoder to
+improve MLM by adding absolute position information of the context words at the MLM decoding
+layer.
+
+
+
+
 # HUGGINGFACE NLP COURSE NOTES
 
 - Look into Zero-Shot-Classification fine tuning

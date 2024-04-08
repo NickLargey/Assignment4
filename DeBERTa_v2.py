@@ -45,21 +45,20 @@ df['Genre'] = df['Genre'].replace(genre_ints)
 test_df['Genre'] = test_df['Genre'].replace(genre_ints)
 
 ################ MODEL INFERENCE ################ 
-m = "microsoft/deberta-base"
+# m = "microsoft/deberta-base" ### For initial training
+m = "model/checkpoint-14020" # update with the most recent model checkpoint path
 
 # After initial training on deberta-base fine-tune model output checkpoints
 model = DebertaForSequenceClassification.from_pretrained(m, num_labels=6) 
-
 tokenizer = AutoTokenizer.from_pretrained(m)
 data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
 ################ TOKENIZE DATA FUNCTIONS ################ 
-
 def label(data):
     return {'title': data['Song Title'],'text': data['Lyrics'], 'labels': data['Genre']}
 
 def tokenize_format(data):
-    tokenized = tokenizer(data['text'], truncation=True)
+    tokenized = tokenizer(data['text'], truncation=True, max_length=512)
     return tokenized
 
 def compute_metrics(eval_pred):
@@ -68,7 +67,6 @@ def compute_metrics(eval_pred):
     return accuracy.compute(predictions=predictions, references=labels)
 
 ################ PREPROCESS DATA ################ 
-
 train_df, val_df = train_test_split(df, test_size=0.2, shuffle=True)
 
 train_dataset = Dataset.from_pandas(train_df).map(label, batched=True)
