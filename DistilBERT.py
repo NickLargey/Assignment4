@@ -46,8 +46,14 @@ def main():
     label_encoder = LabelEncoder()
     df['Label'] = label_encoder.fit_transform(df['Genre'])
 
+    # find_directory = os.path.dirname(os.path.abspath(__file__))
+    test_data_path = os.path.join(find_directory, 'test.csv')
+    test_df = pd.read_csv(test_data_path)
 
-    def tokenized_data(df):
+    # test_label_encoder = LabelEncoder()
+    test_df['Label'] = label_encoder.fit_transform(test_df['Genre'])
+    print(test_df)
+    def tokenize_data(df):
         # Tokenize the lyrics
         max_length = 128  # Max length for BERT input
         tokenized_data = []
@@ -72,8 +78,10 @@ def main():
                 'labels': torch.tensor(label, dtype=torch.long)
             })
         return tokenized_data
-
-    tokenized_data = tokenized_data(df)
+    
+    tokenized_data = tokenize_data(df)
+    test_tokenized_data = tokenize_data(test_df)
+    
     # Split into train and validation
     train_size = 0.8
     train_data, val_data = train_test_split(tokenized_data, test_size=1 - train_size, random_state=42)
@@ -106,15 +114,6 @@ def main():
 
     # Train the model
     trainer.train(resume_from_checkpoint='./results/checkpoint-50')
-
-    find_directory = os.path.dirname(os.path.abspath(__file__))
-    data_path = os.path.join(find_directory, 'test.csv')
-    test_df = pd.read_csv(data_path)
-
-    label_encoder = LabelEncoder()
-    test_df['Label'] = label_encoder.fit_transform(test_df['Genre'])
-
-    test_tokenized_data = tokenized_data(test_df)
 
     # Evaluate on validation data
     eval_results = trainer.evaluate(eval_dataset=test_tokenized_data)
