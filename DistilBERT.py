@@ -6,6 +6,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, Dataset
+import numpy as np
+from sklearn.metrics import f1_score
 from tqdm import tqdm
 # conda create -n 470assignment4
 
@@ -27,6 +29,32 @@ def compute_metrics(pred):
         'recall': recall,
         'f1': f1,
     }
+
+def tokenize_data(df):
+    # Tokenize the lyrics
+    max_length = 256  # Max length for BERT input
+    tokenized_data = []
+    for idx, row in tqdm(df.iterrows(), total=len(df), desc="Tokenizing Lyrics"):
+        lyric = str(row['Lyrics'])
+        label = row['Label']
+
+        encoding = tokenizer.encode_plus(
+            lyric,
+            add_special_tokens=True,
+            max_length=max_length,
+            return_token_type_ids=False,
+            padding='max_length',
+            return_attention_mask=True,
+            return_tensors='pt',
+            truncation=True
+        )
+
+        tokenized_data.append({
+            'input_ids': encoding['input_ids'].flatten(),
+            'attention_mask': encoding['attention_mask'].flatten(),
+            'labels': torch.tensor(label, dtype=torch.long)
+        })
+    return tokenized_data
 
 def main():
     # Read CSV
@@ -52,32 +80,6 @@ def main():
 
     # test_label_encoder = LabelEncoder()
     test_df['Label'] = label_encoder.fit_transform(test_df['Genre'])
-    print(test_df)
-    def tokenize_data(df):
-        # Tokenize the lyrics
-        max_length = 128  # Max length for BERT input
-        tokenized_data = []
-        for idx, row in tqdm(df.iterrows(), total=len(df), desc="Tokenizing Lyrics"):
-            lyric = str(row['Lyrics'])
-            label = row['Label']
-
-            encoding = tokenizer.encode_plus(
-                lyric,
-                add_special_tokens=True,
-                max_length=max_length,
-                return_token_type_ids=False,
-                padding='max_length',
-                return_attention_mask=True,
-                return_tensors='pt',
-                truncation=True
-            )
-
-            tokenized_data.append({
-                'input_ids': encoding['input_ids'].flatten(),
-                'attention_mask': encoding['attention_mask'].flatten(),
-                'labels': torch.tensor(label, dtype=torch.long)
-            })
-        return tokenized_data
     
     tokenized_data = tokenize_data(df)
     test_tokenized_data = tokenize_data(test_df)
@@ -90,11 +92,15 @@ def main():
     num_labels = len(df['Label'].unique())
     model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased', num_labels=num_labels)
     # hyperperimeters
+
+    # hyperparams = [5e-9, 5e-7, 5e-5, 5e-3]
+    # for hyper in hyperparams:
     training_args = TrainingArguments(
         output_dir='./results',
-        num_train_epochs=15,
-        per_device_train_batch_size=128,  # Increased batch size
-        per_device_eval_batch_size=128,
+        num_train_epochs=5,
+        # learning_rate=hyper,
+        per_device_train_batch_size=64,  # Increased batch size
+        per_device_eval_batch_size=64,
         logging_dir='./logs',
         logging_steps=50,
         evaluation_strategy='epoch',
@@ -113,7 +119,7 @@ def main():
     )
 
     # Train the model
-    trainer.train(resume_from_checkpoint='./results/checkpoint-50')
+    trainer.train()
 
     # Evaluate on validation data
     eval_results = trainer.evaluate(eval_dataset=test_tokenized_data)
@@ -123,5 +129,26 @@ def main():
 
     # Save the model
     trainer.save_model("./my_fine_tuned_distilbert_model")
+
+    # Evaluate the model
+    test_results = trainer.predict(test_tokenized_data)
+
+    # Extract predicted labels
+    predicted_labels = np.argmax(test_results.predictions, axis=1)
+
+    # Decode predicted labels
+    predicted_labels = label_encoder.inverse_transform(predicted_labels)
+    
+    y_test = test_df["Genre"].tolist()
+
+    # Calculate F1 score for each class and total F1 score
+    f1_scores_per_class = f1_score(y_test, predicted_labels, average=None)
+    total_f1_score = f1_score(y_test, predicted_labels, average='weighted')
+
+    # Print F1 scores
+    for label, f1_score_class in zip(label_encoder.classes_, f1_scores_per_class):
+        print(f"F1 score for class {label}: {f1_score_class}")
+
+    print(f"Total F1 score: {total_f1_score}")
 if __name__ == "__main__":
     main()
