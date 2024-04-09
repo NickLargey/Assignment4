@@ -134,7 +134,7 @@ trainer = Trainer(
 )
 
 ################ TRAINING ################ 
-tqdm(trainer.train(resume_from_checkpoint="model/checkpoint-14020"))
+# tqdm(trainer.train(resume_from_checkpoint="model/checkpoint-14020"))
 
 trainer.save_model("./my_fine_tuned_deberta_model")
 ################ TESTING #################
