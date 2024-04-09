@@ -9,7 +9,6 @@ from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 from accelerate import Accelerator
 import evaluate
-import sys
 import os
 
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
@@ -97,10 +96,6 @@ val_dataset.set_format("torch")
 
 test_dataset = test_dataset.remove_columns(["Song Title","Lyrics", "Genre","title", "text"])
 test_dataset.set_format("torch")
-
-###### !!!!!!!!!TRYING TO FIGURE OUT WHY THIS GOD DAMN MODEL TAKES UP ALL OF THE GPU MEM SPACE!!!!!!!! ###### 
-# print("Train Size: ",sys.getsizeof(train_dataset),"Eval Size: ",sys.getsizeof(val_dataset),"Text Size: ",sys.getsizeof(test_dataset))
-
 
 dataset_dict = DatasetDict({
     'train': train_dataset,
