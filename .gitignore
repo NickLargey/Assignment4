@@ -1,3 +1,5 @@
 /my_fine_tuned_deberta_model/*
 /Archive/*
 /model/*
+/results/*
+/my_fine_tuned_distilbert_model/*
