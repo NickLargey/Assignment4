@@ -2,7 +2,8 @@
 import torch
 import pandas as pd
 import numpy as np
-from transformers import AutoTokenizer, DebertaForSequenceClassification, DataCollatorWithPadding, TrainingArguments, Trainer
+from transformers import AutoTokenizer, DebertaForSequenceClassification, DataCollatorWithPadding
+from transformers import TrainingArguments, Trainer, TrainerCallback
 from datasets import Dataset, DatasetDict
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
@@ -45,20 +46,29 @@ df['Genre'] = df['Genre'].replace(genre_ints)
 test_df['Genre'] = test_df['Genre'].replace(genre_ints)
 
 ################ MODEL INFERENCE ################ 
-# m = "microsoft/deberta-base" ### For initial training
-m = "model/checkpoint-14020" # update with the most recent model checkpoint path
+m = "microsoft/deberta-base"
 
 # After initial training on deberta-base fine-tune model output checkpoints
 model = DebertaForSequenceClassification.from_pretrained(m, num_labels=6) 
-tokenizer = AutoTokenizer.from_pretrained(m)
+tokenizer = AutoTokenizer.from_pretrained(m, use_fast=True)
 data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
-################ TOKENIZE DATA FUNCTIONS ################ 
+################ FUNCTIONS ################ 
+class EarlyStoppingCallback(TrainerCallback):
+    def __init__(self, num_steps=10):
+        self.num_steps = num_steps
+    
+    def on_step_end(self, args, state, control, **kwargs):
+        if state.global_step >= self.num_steps:
+            return {"should_training_stop": True}
+        else:
+            return {}
+        
 def label(data):
     return {'title': data['Song Title'],'text': data['Lyrics'], 'labels': data['Genre']}
 
 def tokenize_format(data):
-    tokenized = tokenizer(data['text'], truncation=True, max_length=512)
+    tokenized = tokenizer(data['text'], truncation=True, max_length=256)
     return tokenized
 
 def compute_metrics(eval_pred):
@@ -102,13 +112,14 @@ dataset_dict = DatasetDict({
 training_args = TrainingArguments(
     output_dir="model",
     learning_rate=2e-5,
-    per_device_train_batch_size=2,
-    per_device_eval_batch_size=2,
-    num_train_epochs=10,
+    per_device_train_batch_size=4,
+    per_device_eval_batch_size=4,
+    num_train_epochs=15,
     weight_decay=0.01,
     evaluation_strategy="epoch",
     save_strategy="epoch",
     load_best_model_at_end=True,
+    neftune_noise_alpha=0.1
 )
 
 trainer = Trainer(
@@ -119,9 +130,15 @@ trainer = Trainer(
     tokenizer=tokenizer,
     data_collator=data_collator,
     compute_metrics=compute_metrics,
+    # callback=EarlyStoppingCallback(),
 )
 
 ################ TRAINING ################ 
-tqdm(trainer.train())
+tqdm(trainer.train(resume_from_checkpoint="model/checkpoint-14020"))
+
+trainer.save_model("./my_fine_tuned_deberta_model")
+################ TESTING #################
+# eval = trainer.evaluate(dataset_dict['test'])
+# print(eval)
 
 
