@@ -32,7 +32,7 @@ def compute_metrics(pred):
 
 def tokenize_data(df):
     # Tokenize the lyrics
-    max_length = 256  # Max length for BERT input
+    max_length = 128  # Max length for BERT input
     tokenized_data = []
     for idx, row in tqdm(df.iterrows(), total=len(df), desc="Tokenizing Lyrics"):
         lyric = str(row['Lyrics'])
@@ -93,62 +93,62 @@ def main():
     model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased', num_labels=num_labels)
     # hyperperimeters
 
-    # hyperparams = [5e-9, 5e-7, 5e-5, 5e-3]
-    # for hyper in hyperparams:
-    training_args = TrainingArguments(
-        output_dir='./results',
-        num_train_epochs=5,
-        # learning_rate=hyper,
-        per_device_train_batch_size=64,  # Increased batch size
-        per_device_eval_batch_size=64,
-        logging_dir='./logs',
-        logging_steps=50,
-        evaluation_strategy='epoch',
-        gradient_accumulation_steps=4,  
-        save_steps=50,
-        save_total_limit=5
-    )
+    hyperparams = [5e-9, 5e-7, 5e-5, 5e-3]
+    for hyper in hyperparams:
+        training_args = TrainingArguments(
+            output_dir='./results-untrained',
+            num_train_epochs=5,
+            learning_rate=hyper,
+            per_device_train_batch_size=64, 
+            per_device_eval_batch_size=64,
+            logging_dir='./logs',
+            logging_steps=50,
+            evaluation_strategy='epoch',
+            gradient_accumulation_steps=4,  
+            save_steps=50,
+            save_total_limit=5
+        )
 
-    # Trainer
-    trainer = Trainer(
-        model=model,
-        args=training_args,
-        train_dataset=train_data,
-        eval_dataset=val_data,
-        compute_metrics=compute_metrics
-    )
+        # Trainer
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_data,
+            eval_dataset=val_data,
+            compute_metrics=compute_metrics
+        )
 
-    # Train the model
-    trainer.train()
+        # Train the model
+        trainer.train()
 
-    # Evaluate on validation data
-    eval_results = trainer.evaluate(eval_dataset=test_tokenized_data)
-    print("Evaluation Results:")
-    for key, value in eval_results.items():
-        print(f"{key}: {value}")
+        # Evaluate on validation data
+        eval_results = trainer.evaluate(eval_dataset=test_tokenized_data)
+        print("Evaluation Results:")
+        for key, value in eval_results.items():
+            print(f"{key}: {value}")
 
-    # Save the model
-    trainer.save_model("./my_fine_tuned_distilbert_model")
+        # Save the model
+        trainer.save_model("./my_fine_tuned_distilbert_model")
 
-    # Evaluate the model
-    test_results = trainer.predict(test_tokenized_data)
+        # Evaluate the model
+        test_results = trainer.predict(test_tokenized_data)
 
-    # Extract predicted labels
-    predicted_labels = np.argmax(test_results.predictions, axis=1)
+        # Extract predicted labels
+        predicted_labels = np.argmax(test_results.predictions, axis=1)
 
-    # Decode predicted labels
-    predicted_labels = label_encoder.inverse_transform(predicted_labels)
-    
-    y_test = test_df["Genre"].tolist()
+        # Decode predicted labels
+        predicted_labels = label_encoder.inverse_transform(predicted_labels)
+        
+        y_test = test_df["Genre"].tolist()
 
-    # Calculate F1 score for each class and total F1 score
-    f1_scores_per_class = f1_score(y_test, predicted_labels, average=None)
-    total_f1_score = f1_score(y_test, predicted_labels, average='weighted')
+        # Calculate F1 score for each class and total F1 score
+        f1_scores_per_class = f1_score(y_test, predicted_labels, average=None)
+        total_f1_score = f1_score(y_test, predicted_labels, average='weighted')
 
-    # Print F1 scores
-    for label, f1_score_class in zip(label_encoder.classes_, f1_scores_per_class):
-        print(f"F1 score for class {label}: {f1_score_class}")
+        # Print F1 scores
+        for label, f1_score_class in zip(label_encoder.classes_, f1_scores_per_class):
+            print(f"F1 score for class {label}: {f1_score_class}")
 
-    print(f"Total F1 score: {total_f1_score}")
+        print(f"Total F1 score: {total_f1_score}")
 if __name__ == "__main__":
     main()

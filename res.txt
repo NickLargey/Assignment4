@@ -1,0 +1,19 @@
+Number of samples per group:  1168
+{'train_runtime': 0.0741, 'train_samples_per_second': 1512515.806, 'train_steps_per_second': 1349.015, 'train_loss': 0.0, 'epoch': 13.68}
+Evaluation Results:
+eval_loss: 2.379729747772217
+eval_accuracy: 0.36666666666666664
+eval_precision: 0.5944444444444444
+eval_recall: 0.36666666666666664
+eval_f1: 0.39986772486772487
+eval_runtime: 1.4551
+eval_samples_per_second: 20.617
+eval_steps_per_second: 0.687
+epoch: 13.68
+F1 score for class Blues: 0.3333333333333333
+F1 score for class Country: 0.25
+F1 score for class Metal: 0.4444444444444444
+F1 score for class Pop: 0.6
+F1 score for class Rap: 0.5714285714285714
+F1 score for class Rock: 0.2
+Total F1 score: 0.39986772486772487

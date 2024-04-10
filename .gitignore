@@ -2,4 +2,6 @@
 /Archive/*
 /model/*
 /results/*
+/results-untrained/*
 /my_fine_tuned_distilbert_model/*
+.gitignore
